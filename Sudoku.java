@@ -2,6 +2,8 @@ import java.util.*;
 
 public class Sudoku {
 
+    public static char [] elements = new char[]{'.', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+
     private static boolean isValid(final String board) {
         HashSet[] rows = new HashSet[9];
         HashSet[] cols = new HashSet[9];
@@ -100,56 +102,34 @@ public class Sudoku {
         test("123456789456789123789123456214365897365897214897214365531642978648971532972538641", true);
     }
 
-    private static final char [] elements = new char [] {'1', '2', '3', '4', '5', '6', '7', '8', '9'};
-
     public static String solve(String sudoku) {
-        final HashSet[] rows = new HashSet[9];
-        final HashSet[] cols = new HashSet[9];
-        final HashMap<Integer, HashSet> squares = new HashMap<>(81*3);
+        final boolean[][] rows = new boolean[9][10];
+        final boolean[][] cols = new boolean[9][10];
+        final boolean[][] squares = new boolean[9][10];
         final StringBuilder sb = new StringBuilder(81*3);
 
-        rows[0] = new HashSet(9*3);
         for (int i = 0; i < 9; i++) {
-            cols[i] = new HashSet();
-            HashSet square = null;
-            if (i % 3 == 0) {
-                square = new HashSet();
-            } else {
-                square = squares.get((i/3)*3);
-            }
-
+            final int col = i%9;
             if (sudoku.charAt(i) != '.') {
-                square.add(sudoku.charAt(i));
-                rows[0].add(sudoku.charAt(i));
-                cols[i].add(sudoku.charAt(i));
+                final int item = sudoku.charAt(i) - '0';
+                squares[i/9/3*3+i%9/3][item] = true;
+                rows[0][item] = true;
+                cols[i][item] = true;
             }
             
-            squares.put(i, square);
             sb.append(sudoku.charAt(i));
         }
 
         for (int i = 9; i < 81; i++) {
             final int row = i/9;
             final int col = i%9;
-
-            if (col == 0) {
-                rows[row] = new HashSet(9*3);
-            }
-
-            HashSet square = null;
-            if (col % 3 == 0 && row % 3 == 0) {
-                square = new HashSet();
-            } else {
-                square = squares.get((row/3)*3*9 + (col/3)*3);
-            }
-            
             if (sudoku.charAt(i) != '.') {
-                rows[row].add(sudoku.charAt(i));
-                cols[col].add(sudoku.charAt(i));
-                square.add(sudoku.charAt(i));
+                final int item = sudoku.charAt(i) - '0';
+                squares[row/3*3+col/3][item] = true;
+                rows[row][item] = true;
+                cols[col][item] = true;
             }
 
-            squares.put(i, square);
             sb.append(sudoku.charAt(i));
         }
 
@@ -158,7 +138,7 @@ public class Sudoku {
     }
 
     private static int iterations = 0;
-    private static String solve(StringBuilder sb, int i, HashSet[] rows, HashSet[] cols, HashMap<Integer, HashSet> squares) {
+    private static String solve(StringBuilder sb, int i, boolean [][] rows, boolean [][] cols, boolean [][] squares) {
         iterations++;
         if (i == 81) {
             return sb.toString();
@@ -168,23 +148,18 @@ public class Sudoku {
             return solve(sb, i+1, rows, cols, squares);
         }
 
-        for (int k = 0; k < elements.length; k++) {
+        for (int k = 1; k < 10; k++) {
             final int row = i/9;
             final int col = i%9;
+            final int base = (row/3)*3+col/3;
 
-            if (rows[row].contains(elements[k]) || cols[col].contains(elements[k])) {
+            if (rows[row][k] || cols[col][k] || squares[base][k]) {
                 continue;
             }
 
-            final HashSet square = squares.get(i);
-            
-            if (square.contains(elements[k])) {
-                continue;
-            }
-
-            rows[row].add(elements[k]);
-            cols[col].add(elements[k]);
-            square.add(elements[k]);
+            rows[row][k] = true;
+            cols[col][k] = true;
+            squares[base][k] = true;
             sb.setCharAt(i, elements[k]);
 
             final String res = solve(sb, i+1, rows, cols, squares);
@@ -193,9 +168,9 @@ public class Sudoku {
                 return res;
             }
 
-            rows[row].remove(elements[k]);
-            cols[col].remove(elements[k]);
-            square.remove(elements[k]);
+            rows[row][k] = false;
+            cols[col][k] = false;
+            squares[base][k] = false;
             sb.setCharAt(i, '.');
         }
 
@@ -235,8 +210,6 @@ public class Sudoku {
             totalTime += (end - start);
         }
         
-        // 90 - 6 = 84 / 2 = 42
-        // 90 - 13 = 74 / 2
         System.out.println("=".repeat(42) + " DONE " + "=".repeat(42));
         System.out.println();
         System.out.println(String.format("Avg. time: %.2fms", (totalTime/(double)cases.length)*1e-6));
